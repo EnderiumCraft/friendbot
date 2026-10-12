@@ -1,0 +1,20 @@
+{
+	"schemaVersion": 1,
+	"id": "friendbot",
+	"version": "${version}",
+	"name": "Friendbot",
+	"description": "A companion who feels like a real person to play with.",
+	"authors": [],
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.enderiumcraft.friendbot.FriendbotMod"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.1",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
