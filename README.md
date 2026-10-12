@@ -4,10 +4,12 @@ A Fabric mod for Minecraft 26.1 that adds a companion who should feel like a rea
 
 ## Status
 
-Foundation only. There is no companion in the world yet.
+The companion exists as a Minecraft entity, but it can't be spawned yet. It has no renderer and no spawn command, and a spawned entity without a renderer would crash the client.
 
 - Fabric 26.1 project scaffold, using the values from the official `fabric-example-mod` 26.1 branch.
 - `mind/`: the companion's inner life. Needs that decay over time, a personality, memory and trust for each player, and a rule-based decision maker. It has no Minecraft dependency and is covered by tests.
+- `body/`: turns the chosen intent into a walk target. It has no Minecraft dependency and is covered by tests.
+- `entity/`: the Minecraft side. It registers the entity type and default attributes, senses the world each tick, and applies the mind's decisions. **Not yet verified against the 26.1 API.** The first local build is the real check.
 
 ## Build and run
 
@@ -21,13 +23,17 @@ Requires **JDK 25**.
 
 ## Layout
 
-- `FriendbotMod`: the Fabric entrypoint. The only class that touches Minecraft so far.
+- `FriendbotMod`: the Fabric entrypoint. Registers the entity and exposes `id()`.
+- `entity/`: the Minecraft side.
+  - `CompanionEntity`: a `PathfinderMob` that senses the world each tick and carries out its mind's decisions.
+  - `ModEntities`: registers the entity type and its default attributes.
 - `mind/`: the companion's brain. Nothing in here imports Minecraft.
   - `Mind`: the per-tick loop. Decides when to reconsider what it is doing, and when a decision is urgent enough to interrupt.
   - `Needs`: food, rest and company. Each runs down over time and is restored by actions.
   - `Acquaintance`: what the companion remembers about one player. Trust rises slowly and falls fast. Familiarity grows with time together and fades when apart.
   - `UtilityProvider`: the default rule-based chooser. It scores each `Intent` and picks the highest.
   - `DecisionProvider`: the seam for a future language model. Anything that maps a `Mind` and a `Percept` to a `Decision` can plug in here.
+- `body/`: turns an `Intent` into a walk `Goal` (target and speed) from where the companion stands. `Steering` is pure geometry.
 
 ## Plan
 

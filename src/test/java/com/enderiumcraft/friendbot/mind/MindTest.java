@@ -108,6 +108,38 @@ class MindTest {
 	}
 
 	@Test
+	void companionDoesNotGetStuckRestingWhenAloneForAnHour() {
+		Mind mind = new Mind("Alex", NEUTRAL, new UtilityProvider());
+		long hour = 72_000;
+		long restingTicks = 0;
+
+		for (long tick = 0; tick <= hour; tick++) {
+			mind.think(calm(tick, false));
+			if (mind.intent() == Intent.REST) {
+				restingTicks++;
+			}
+		}
+
+		assertTrue(restingTicks < hour / 2, "rested " + restingTicks + " of " + hour + " ticks");
+	}
+
+	@Test
+	void timeNearAPlayerRefillsCompany() {
+		Mind mind = new Mind("Alex", NEUTRAL, new UtilityProvider());
+		for (long tick = 0; tick <= 9_000; tick++) {
+			mind.think(calm(tick, false));
+		}
+		assertTrue(mind.needs().urgency(Need.COMPANY) > 0.5, "lonely before anyone visits");
+
+		Percept.Sighting nearby = new Percept.Sighting("Sam", 3.0);
+		for (long tick = 9_001; tick <= 11_400; tick++) {
+			mind.think(withPlayer(tick, nearby));
+		}
+
+		assertTrue(mind.needs().urgency(Need.COMPANY) < 0.05, "still lonely: " + mind.needs().urgency(Need.COMPANY));
+	}
+
+	@Test
 	void personalityRejectsTraitsOutsideZeroToOne() {
 		assertThrows(IllegalArgumentException.class, () -> new Personality(1.5, 0.0, 0.0));
 		assertThrows(IllegalArgumentException.class, () -> new Personality(0.0, -0.1, 0.0));

@@ -16,6 +16,12 @@ public final class Mind {
 	static final long MIN_HOLD_TICKS = 60;
 	/** A player who has not been seen for a minute counts as a new encounter when they return. */
 	static final long NEW_ENCOUNTER_TICKS = 1200;
+	/** Resting refills REST from empty to full in about 5 minutes. */
+	static final double REST_RECOVERY_TICKS = 6000;
+	/** Time spent near a player refills COMPANY from empty to full in about 2 minutes. */
+	static final double COMPANY_RECOVERY_TICKS = 2400;
+	/** How close a player must be for the companion to feel their company, in blocks. */
+	static final double NEARBY_PLAYER_DISTANCE = 6.0;
 
 	private static final long NEVER = Long.MIN_VALUE;
 
@@ -46,6 +52,7 @@ public final class Mind {
 		long elapsed = lastTick == NEVER ? 0 : Math.max(0, percept.tick() - lastTick);
 		lastTick = percept.tick();
 		needs.decay(elapsed);
+		recoverNeeds(percept, elapsed);
 
 		Optional<Decision> result = Optional.empty();
 		if (isDue(percept)) {
@@ -109,6 +116,17 @@ public final class Mind {
 			return true;
 		}
 		return percept.tick() - intentStartedTick >= MIN_HOLD_TICKS;
+	}
+
+	/** Needs are refilled by what the companion is doing, so resting can end and company can help. */
+	private void recoverNeeds(Percept percept, long elapsed) {
+		if (intent == Intent.REST) {
+			needs.restore(Need.REST, elapsed / REST_RECOVERY_TICKS);
+		}
+		boolean playerNearby = percept.player().filter(player -> player.distance() <= NEARBY_PLAYER_DISTANCE).isPresent();
+		if (playerNearby) {
+			needs.restore(Need.COMPANY, elapsed / COMPANY_RECOVERY_TICKS);
+		}
 	}
 
 	private void updateSocial(Percept percept, long elapsed) {
