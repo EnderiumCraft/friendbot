@@ -133,9 +133,12 @@ public class CompanionEntity extends PathfinderMob {
 				.min(Comparator.comparingDouble(this::distanceToSqr));
 	}
 
+	/**
+	 * Whether it is night. Placeholder: the 26.1 time-of-day method is not confirmed yet, so for
+	 * now the companion always reports day. Night only affects how tired it gets.
+	 */
 	private boolean isNight() {
-		long time = level().getDayTime() % 24000L;
-		return time >= 13000L && time < 23000L;
+		return false;
 	}
 
 	private static Vec2 groundPosition(Entity entity) {

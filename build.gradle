@@ -17,10 +17,12 @@ dependencies {
 }
 
 processResources {
-	inputs.property "version", project.version
+	// Copy the version into a local first. Reading `project` inside the closure breaks the configuration cache.
+	def modVersion = project.version
+	inputs.property "version", modVersion
 
 	filesMatching("fabric.mod.json") {
-		expand "version": project.version
+		expand "version": modVersion
 	}
 }
 
