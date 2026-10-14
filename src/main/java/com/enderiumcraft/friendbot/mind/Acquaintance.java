@@ -46,7 +46,7 @@ public final class Acquaintance {
 
 	/** False if the player was never seen, or if the clock has gone back past the last sighting. */
 	boolean seenWithin(long tick, long ticks) {
-		return lastSeenTick != NEVER && tick >= lastSeenTick && tick - lastSeenTick <= ticks;
+		return lastSeenTick != NEVER && tick >= lastSeenTick && lastSeenTick >= tick - ticks;
 	}
 
 	void seen(long tick, long elapsed) {

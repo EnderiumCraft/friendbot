@@ -33,7 +33,8 @@ Requires **JDK 25**.
   - `Acquaintance`: what the companion remembers about one player. Trust rises slowly and falls fast. Familiarity grows with time together and fades when apart.
   - `UtilityProvider`: the default rule-based chooser. It scores each `Intent` and picks the highest.
   - `DecisionProvider`: the seam for a future language model. Anything that maps a `Mind` and a `Percept` to a `Decision` can plug in here.
-  - `MindSnapshot`: everything about a mind that should survive a save and reload, as plain data. `Mind.snapshot()` and `Mind.restore(...)` convert to and from it. Nothing writes it to a world file yet.
+  - `MindSnapshot`: everything about a mind that should survive a save and reload, as plain data. `Mind.snapshot()` and `Mind.restore(...)` convert to and from it. Nothing writes it to a world file yet; that waits on the 26.1 save API.
+  - `MindCodec`: turns a snapshot into a text block and back, so the whole memory fits in one string. Unknown or malformed lines are skipped. Only a missing header makes the text unreadable.
   - `PendingEncounter`: an event the companion has not answered yet: a player arriving, hitting, giving food, or greeting. Up to four wait at once, and the oldest is answered first.
   - `Utterance`: a line the companion says, and the player it is for. Lines only go to that player.
 - `body/`: turns an `Intent` into a walk `Goal` (target and speed) from where the companion stands. `Steering` is pure geometry.

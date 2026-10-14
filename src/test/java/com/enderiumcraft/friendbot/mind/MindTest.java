@@ -362,6 +362,18 @@ class MindTest {
 	}
 
 	@Test
+	void aVeryOldSightingIsNotCountedAsRecentEvenWhenTheArithmeticWouldOverflow() {
+		long longAgo = -9_000_000_000_000_000_000L;
+		MindSnapshot saved = new MindSnapshot(true, Intent.IDLE, 0, 0, Map.of(),
+				List.of(new MindSnapshot.AcquaintanceSnapshot("Sam", 0.5, 0.5, longAgo)), List.of());
+		Mind restored = Mind.restore("Alex", NEUTRAL, new UtilityProvider(), saved);
+
+		Decision greeting = restored.think(withPlayer(9_000_000_000_000_000_000L, SAM_NEAR)).orElseThrow();
+
+		assertTrue(greeting.say().isPresent(), "a player last seen eons ago is a new encounter");
+	}
+
+	@Test
 	void corruptSavedValuesFallBackToDefaults() {
 		Needs needs = new Needs(Map.of(Need.FOOD, Double.NaN));
 		assertEquals(1.0, needs.level(Need.FOOD), 1e-12);
