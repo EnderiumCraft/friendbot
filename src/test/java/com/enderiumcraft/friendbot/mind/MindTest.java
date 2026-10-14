@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
@@ -137,6 +138,60 @@ class MindTest {
 		}
 
 		assertTrue(mind.needs().urgency(Need.COMPANY) < 0.05, "still lonely: " + mind.needs().urgency(Need.COMPANY));
+	}
+
+	@Test
+	void restoredMindContinuesExactlyWhereTheOriginalLeftOff() {
+		Mind original = new Mind("Alex", NEUTRAL, new UtilityProvider());
+		for (long tick = 0; tick <= 3_000; tick++) {
+			original.think(tick % 500 < 250 ? withPlayer(tick, SAM_NEAR) : calm(tick, false));
+		}
+		original.recordEncounter("Sam", Encounter.GAVE_FOOD);
+
+		Mind restored = Mind.restore("Alex", NEUTRAL, new UtilityProvider(), original.snapshot());
+		assertEquals(original.snapshot(), restored.snapshot(), "restore must reproduce every saved field");
+
+		for (long tick = 3_001; tick <= 6_000; tick++) {
+			Percept percept = tick % 700 < 300 ? withPlayer(tick, SAM_NEAR) : calm(tick, false);
+			assertEquals(original.think(percept), restored.think(percept), "decision at tick " + tick);
+			assertEquals(original.intent(), restored.intent(), "intent at tick " + tick);
+		}
+		assertEquals(original.needs().level(Need.COMPANY), restored.needs().level(Need.COMPANY), 1e-12);
+		assertEquals(original.acquaintance("Sam").trust(), restored.acquaintance("Sam").trust(), 1e-12);
+		assertEquals(original.acquaintance("Sam").familiarity(), restored.acquaintance("Sam").familiarity(), 1e-12);
+	}
+
+	@Test
+	void snapshotOfAFreshMindRestoresAsAFreshMind() {
+		Mind restored = Mind.restore("Alex", NEUTRAL, new UtilityProvider(),
+				new Mind("Alex", NEUTRAL, new UtilityProvider()).snapshot());
+
+		Optional<Decision> first = restored.think(calm(10_000, false));
+
+		assertTrue(first.isPresent(), "a fresh mind must decide on its first think");
+		assertEquals(1.0, restored.needs().level(Need.FOOD), 1e-12, "no time has passed for a fresh mind");
+	}
+
+	@Test
+	void snapshotIsAFrozenCopy() {
+		Mind mind = new Mind("Alex", NEUTRAL, new UtilityProvider());
+		mind.think(calm(0, false));
+		mind.think(calm(9_000, false));
+		MindSnapshot before = mind.snapshot();
+
+		mind.think(calm(18_000, false));
+
+		assertEquals(0.5, before.needs().get(Need.FOOD), 1e-9, "the saved copy must not see later changes");
+		assertEquals(0.0, mind.needs().level(Need.FOOD), 1e-9, "the live mind did keep getting hungrier");
+	}
+
+	@Test
+	void needsMissingFromASnapshotStartFull() {
+		Needs needs = new Needs(Map.of(Need.REST, 0.2));
+
+		assertEquals(0.2, needs.level(Need.REST), 1e-12);
+		assertEquals(1.0, needs.level(Need.FOOD), 1e-12);
+		assertEquals(1.0, needs.level(Need.COMPANY), 1e-12);
 	}
 
 	@Test

@@ -1,6 +1,8 @@
 package com.enderiumcraft.friendbot.mind;
 
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -28,7 +30,7 @@ public final class Mind {
 	private final String name;
 	private final Personality personality;
 	private final DecisionProvider provider;
-	private final Needs needs = new Needs();
+	private Needs needs = new Needs();
 	private final Map<String, Acquaintance> acquaintances = new HashMap<>();
 
 	private Intent intent = Intent.IDLE;
@@ -40,6 +42,33 @@ public final class Mind {
 		this.name = name;
 		this.personality = personality;
 		this.provider = provider;
+	}
+
+	/** Captures everything that should survive a save and reload. */
+	public MindSnapshot snapshot() {
+		List<MindSnapshot.AcquaintanceSnapshot> known = acquaintances.values().stream()
+				.sorted(Comparator.comparing(Acquaintance::name))
+				.map(a -> new MindSnapshot.AcquaintanceSnapshot(a.name(), a.trust(), a.familiarity(), a.lastSeenTick()))
+				.toList();
+		return new MindSnapshot(decided, intent, intentStartedTick, lastTick, needs.snapshotLevels(), known);
+	}
+
+	/**
+	 * Rebuilds a mind from a snapshot. The configuration (name, personality, provider) must be
+	 * supplied again, because it is not stored.
+	 */
+	public static Mind restore(String name, Personality personality, DecisionProvider provider, MindSnapshot snapshot) {
+		Mind mind = new Mind(name, personality, provider);
+		mind.needs = new Needs(snapshot.needs());
+		for (MindSnapshot.AcquaintanceSnapshot saved : snapshot.acquaintances()) {
+			mind.acquaintances.put(saved.name(),
+					new Acquaintance(saved.name(), saved.trust(), saved.familiarity(), saved.lastSeenTick()));
+		}
+		mind.intent = snapshot.intent();
+		mind.decided = snapshot.decided();
+		mind.intentStartedTick = snapshot.intentStartedTick();
+		mind.lastTick = snapshot.lastTick();
+		return mind;
 	}
 
 	/**

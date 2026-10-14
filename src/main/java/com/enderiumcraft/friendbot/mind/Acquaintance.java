@@ -19,6 +19,17 @@ public final class Acquaintance {
 		this.name = name;
 	}
 
+	Acquaintance(String name, double trust, double familiarity, long lastSeenTick) {
+		this.name = name;
+		this.trust = Math.clamp(trust, 0.0, 1.0);
+		this.familiarity = Math.clamp(familiarity, 0.0, 1.0);
+		this.lastSeenTick = lastSeenTick;
+	}
+
+	long lastSeenTick() {
+		return lastSeenTick;
+	}
+
 	public String name() {
 		return name;
 	}

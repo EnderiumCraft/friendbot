@@ -7,7 +7,7 @@ A Fabric mod for Minecraft 26.1 that adds a companion who should feel like a rea
 The companion exists as a Minecraft entity, but it can't be spawned yet. It has no renderer and no spawn command, and a spawned entity without a renderer would crash the client.
 
 - Fabric 26.1 project scaffold, using the values from the official `fabric-example-mod` 26.1 branch.
-- `mind/`: the companion's inner life. Needs that decay over time, a personality, memory and trust for each player, and a rule-based decision maker. It has no Minecraft dependency and is covered by tests.
+- `mind/`: the companion's inner life. Needs that decay over time and recover while acted on, a personality, memory and trust for each player, and a rule-based decision maker. It can be snapshotted and restored. It has no Minecraft dependency and is covered by tests.
 - `body/`: turns the chosen intent into a walk target. It has no Minecraft dependency and is covered by tests.
 - `entity/`: the Minecraft side. It registers the entity type and default attributes, senses the world each tick, and applies the mind's decisions. **Not yet verified against the 26.1 API.** The first local build is the real check.
 
@@ -33,6 +33,7 @@ Requires **JDK 25**.
   - `Acquaintance`: what the companion remembers about one player. Trust rises slowly and falls fast. Familiarity grows with time together and fades when apart.
   - `UtilityProvider`: the default rule-based chooser. It scores each `Intent` and picks the highest.
   - `DecisionProvider`: the seam for a future language model. Anything that maps a `Mind` and a `Percept` to a `Decision` can plug in here.
+  - `MindSnapshot`: everything about a mind that should survive a save and reload, as plain data. `Mind.snapshot()` and `Mind.restore(...)` convert to and from it. Nothing writes it to a world file yet.
 - `body/`: turns an `Intent` into a walk `Goal` (target and speed) from where the companion stands. `Steering` is pure geometry.
 
 ## Plan

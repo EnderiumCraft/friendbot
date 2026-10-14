@@ -1,6 +1,8 @@
 package com.enderiumcraft.friendbot.mind;
 
+import java.util.Collections;
 import java.util.EnumMap;
+import java.util.Map;
 
 /**
  * How satisfied each {@link Need} is, from 0 (desperate) to 1 (fully satisfied).
@@ -12,6 +14,18 @@ public final class Needs {
 		for (Need need : Need.values()) {
 			levels.put(need, 1.0);
 		}
+	}
+
+	/** Starts from saved levels. Any need missing from the map starts full. */
+	Needs(Map<Need, Double> saved) {
+		this();
+		for (Map.Entry<Need, Double> entry : saved.entrySet()) {
+			levels.put(entry.getKey(), Math.clamp(entry.getValue(), 0.0, 1.0));
+		}
+	}
+
+	Map<Need, Double> snapshotLevels() {
+		return Collections.unmodifiableMap(new EnumMap<>(levels));
 	}
 
 	public double level(Need need) {
