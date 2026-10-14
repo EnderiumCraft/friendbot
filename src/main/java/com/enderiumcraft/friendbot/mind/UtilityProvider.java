@@ -1,10 +1,11 @@
 package com.enderiumcraft.friendbot.mind;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
  * Scores every {@link Intent} from the companion's needs, personality and surroundings,
- * then picks the highest.
+ * then picks the highest. It also answers the oldest event waiting for a reply.
  *
  * <p>The ranges are tuned so that a threat always beats everything else, then trust and
  * loneliness, then hunger and tiredness, then idle wandering.
@@ -21,7 +22,7 @@ public final class UtilityProvider implements DecisionProvider {
 				bestScore = score;
 			}
 		}
-		return new Decision(best, greeting(best, mind, percept));
+		return new Decision(best, reply(best, mind));
 	}
 
 	private static double score(Intent intent, Mind mind, Percept percept) {
@@ -62,11 +63,41 @@ public final class UtilityProvider implements DecisionProvider {
 		return (1.0 - acquaintance.trust()) * mind.personality().caution();
 	}
 
-	private static Optional<String> greeting(Intent intent, Mind mind, Percept percept) {
-		if (intent == Intent.FLEE || intent == Intent.KEEP_AWAY_FROM_PLAYER || !mind.isNewEncounter(percept)) {
+	/**
+	 * Answers the oldest event waiting for a reply. A player who has just come into view is only
+	 * greeted if the companion is not busy fleeing or keeping away from someone.
+	 */
+	private static Optional<Utterance> reply(Intent chosen, Mind mind) {
+		List<PendingEncounter> waiting = mind.pendingEncounters();
+		if (waiting.isEmpty()) {
 			return Optional.empty();
 		}
-		return percept.player().map(player -> "Hey " + player.name() + "!");
+		PendingEncounter event = waiting.get(0);
+		String name = event.playerName();
+		Optional<String> line = switch (event.encounter()) {
+			case ARRIVED -> arrivalGreeting(chosen, name, mind);
+			case GREETED -> Optional.of("Hi, " + name + "!");
+			case GAVE_FOOD -> Optional.of("Thanks, " + name + "!");
+			case HURT_ME -> Optional.of(mind.acquaintance(name).trust() >= 0.3
+					? "Ow! Hey, what was that for?"
+					: "Stop it, " + name + "!");
+		};
+		return line.map(text -> new Utterance(name, text));
+	}
+
+	/** Strangers get an introduction; people the companion knows get a warmer hello. */
+	private static Optional<String> arrivalGreeting(Intent chosen, String name, Mind mind) {
+		if (chosen == Intent.FLEE || chosen == Intent.KEEP_AWAY_FROM_PLAYER) {
+			return Optional.empty();
+		}
+		double familiarity = mind.acquaintance(name).familiarity();
+		if (familiarity < 0.2) {
+			return Optional.of("Hi, I'm " + mind.name() + ".");
+		}
+		if (familiarity < 0.6) {
+			return Optional.of("Hey, " + name + "!");
+		}
+		return Optional.of("Hey " + name + ", good to see you!");
 	}
 
 	private static double needsCompany(Mind mind) {

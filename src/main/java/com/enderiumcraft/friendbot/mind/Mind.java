@@ -1,9 +1,11 @@
 package com.enderiumcraft.friendbot.mind;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -24,6 +26,8 @@ public final class Mind {
 	static final double COMPANY_RECOVERY_TICKS = 2400;
 	/** How close a player must be for the companion to feel their company, in blocks. */
 	static final double NEARBY_PLAYER_DISTANCE = 6.0;
+	/** Most events kept waiting for an answer. If more arrive, the oldest is dropped. */
+	static final int MAX_PENDING = 4;
 
 	private static final long NEVER = Long.MIN_VALUE;
 
@@ -37,6 +41,7 @@ public final class Mind {
 	private boolean decided = false;
 	private long intentStartedTick;
 	private long lastTick = NEVER;
+	private final List<PendingEncounter> pending = new ArrayList<>();
 
 	public Mind(String name, Personality personality, DecisionProvider provider) {
 		this.name = name;
@@ -50,7 +55,7 @@ public final class Mind {
 				.sorted(Comparator.comparing(Acquaintance::name))
 				.map(a -> new MindSnapshot.AcquaintanceSnapshot(a.name(), a.trust(), a.familiarity(), a.lastSeenTick()))
 				.toList();
-		return new MindSnapshot(decided, intent, intentStartedTick, lastTick, needs.snapshotLevels(), known);
+		return new MindSnapshot(decided, intent, intentStartedTick, lastTick, needs.snapshotLevels(), known, pending);
 	}
 
 	/**
@@ -68,6 +73,7 @@ public final class Mind {
 		mind.decided = snapshot.decided();
 		mind.intentStartedTick = snapshot.intentStartedTick();
 		mind.lastTick = snapshot.lastTick();
+		mind.pending.addAll(snapshot.pending());
 		return mind;
 	}
 
@@ -82,6 +88,9 @@ public final class Mind {
 		lastTick = percept.tick();
 		needs.decay(elapsed);
 		recoverNeeds(percept, elapsed);
+		if (isNewEncounter(percept)) {
+			percept.player().ifPresent(sighting -> enqueue(sighting.name(), Encounter.ARRIVED));
+		}
 
 		Optional<Decision> result = Optional.empty();
 		if (isDue(percept)) {
@@ -89,6 +98,9 @@ public final class Mind {
 			intent = decision.intent();
 			intentStartedTick = percept.tick();
 			decided = true;
+			if (!pending.isEmpty()) {
+				pending.remove(0);
+			}
 			result = Optional.of(decision);
 		}
 
@@ -109,9 +121,19 @@ public final class Mind {
 		needs.restore(need, amount);
 	}
 
-	/** Records something a player did to or with the companion. */
+	/**
+	 * Records something a player did to the companion. The companion answers it on its next
+	 * decision, which happens right away rather than waiting for the hold to end.
+	 */
 	public void recordEncounter(String playerName, Encounter encounter) {
+		Objects.requireNonNull(playerName, "an encounter needs a player name");
 		acquaintance(playerName).apply(encounter);
+		enqueue(playerName, encounter);
+	}
+
+	/** Events the companion has not answered yet, oldest first. */
+	public List<PendingEncounter> pendingEncounters() {
+		return List.copyOf(pending);
 	}
 
 	public Acquaintance acquaintance(String playerName) {
@@ -134,8 +156,15 @@ public final class Mind {
 		return intent;
 	}
 
+	private void enqueue(String playerName, Encounter encounter) {
+		if (pending.size() >= MAX_PENDING) {
+			pending.remove(0);
+		}
+		pending.add(new PendingEncounter(playerName, encounter));
+	}
+
 	private boolean isDue(Percept percept) {
-		if (!decided) {
+		if (!decided || !pending.isEmpty()) {
 			return true;
 		}
 		if (percept.hostileNearby() && intent != Intent.FLEE) {
@@ -144,7 +173,9 @@ public final class Mind {
 		if (isNewEncounter(percept)) {
 			return true;
 		}
-		return percept.tick() - intentStartedTick >= MIN_HOLD_TICKS;
+		long held = percept.tick() - intentStartedTick;
+		// A negative hold means the clock went back, for example after a world reset. Decide again.
+		return held < 0 || held >= MIN_HOLD_TICKS;
 	}
 
 	/** Needs are refilled by what the companion is doing, so resting can end and company can help. */

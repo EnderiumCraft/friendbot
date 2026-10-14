@@ -13,6 +13,7 @@ import java.util.Map;
  * @param lastTick          the last tick the mind was advanced to
  * @param needs             each need's level, from 0 to 1
  * @param acquaintances     what it remembers about each player
+ * @param pending           events it has not answered yet, oldest first. A null list is read as empty.
  */
 public record MindSnapshot(
 		boolean decided,
@@ -20,7 +21,12 @@ public record MindSnapshot(
 		long intentStartedTick,
 		long lastTick,
 		Map<Need, Double> needs,
-		List<AcquaintanceSnapshot> acquaintances) {
+		List<AcquaintanceSnapshot> acquaintances,
+		List<PendingEncounter> pending) {
+
+	public MindSnapshot {
+		pending = pending == null ? List.of() : List.copyOf(pending);
+	}
 
 	/**
 	 * @param name         the player's name

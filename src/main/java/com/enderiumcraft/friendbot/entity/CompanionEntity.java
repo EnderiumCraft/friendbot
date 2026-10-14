@@ -9,6 +9,7 @@ import com.enderiumcraft.friendbot.mind.Mind;
 import com.enderiumcraft.friendbot.mind.Percept;
 import com.enderiumcraft.friendbot.mind.Personality;
 import com.enderiumcraft.friendbot.mind.UtilityProvider;
+import com.enderiumcraft.friendbot.mind.Utterance;
 import java.util.Comparator;
 import java.util.Optional;
 import net.minecraft.network.chat.Component;
@@ -76,7 +77,7 @@ public class CompanionEntity extends PathfinderMob {
 
 		Optional<Decision> decision = mind.think(percept);
 		if (decision.isPresent()) {
-			decision.get().say().ifPresent(line -> say(line, player));
+			decision.get().say().ifPresent(this::say);
 			steer(decision.get().intent(), player, threat);
 		} else if (tickCount % REPLAN_TICKS == 0 && isFollowingOrFleeing(mind.intent())) {
 			steer(mind.intent(), player, threat);
@@ -105,16 +106,17 @@ public class CompanionEntity extends PathfinderMob {
 		}
 	}
 
-	/** Speaks in chat as the companion: to the player it is talking to, or to everyone if there is no one. */
-	private void say(String line, Optional<Player> listener) {
+	/**
+	 * Says a line in chat to the player it is for. Nothing is said if that player has left, so a
+	 * reply never goes to someone it was not meant for.
+	 */
+	private void say(Utterance utterance) {
 		if (!(level() instanceof ServerLevel serverLevel)) {
 			return;
 		}
-		Component message = Component.literal("<" + NAME + "> " + line);
-		if (listener.isPresent()) {
-			listener.get().sendSystemMessage(message);
-		} else {
-			serverLevel.getServer().getPlayerList().broadcastSystemMessage(message, false);
+		Player listener = serverLevel.getServer().getPlayerList().getPlayerByName(utterance.listener());
+		if (listener != null) {
+			listener.sendSystemMessage(Component.literal("<" + NAME + "> " + utterance.text()));
 		}
 	}
 

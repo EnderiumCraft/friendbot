@@ -16,11 +16,11 @@ public final class Needs {
 		}
 	}
 
-	/** Starts from saved levels. Any need missing from the map starts full. */
+	/** Starts from saved levels. Any need missing from the map, or saved as NaN, starts full. */
 	Needs(Map<Need, Double> saved) {
 		this();
 		for (Map.Entry<Need, Double> entry : saved.entrySet()) {
-			levels.put(entry.getKey(), Math.clamp(entry.getValue(), 0.0, 1.0));
+			levels.put(entry.getKey(), Values.unit(entry.getValue(), 1.0));
 		}
 	}
 
@@ -38,7 +38,8 @@ public final class Needs {
 	}
 
 	public void restore(Need need, double amount) {
-		levels.put(need, Math.clamp(levels.get(need) + amount, 0.0, 1.0));
+		double current = levels.get(need);
+		levels.put(need, Values.unit(current + amount, current));
 	}
 
 	void decay(long ticks) {

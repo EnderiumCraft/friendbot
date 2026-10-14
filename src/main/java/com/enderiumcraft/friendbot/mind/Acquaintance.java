@@ -21,8 +21,8 @@ public final class Acquaintance {
 
 	Acquaintance(String name, double trust, double familiarity, long lastSeenTick) {
 		this.name = name;
-		this.trust = Math.clamp(trust, 0.0, 1.0);
-		this.familiarity = Math.clamp(familiarity, 0.0, 1.0);
+		this.trust = Values.unit(trust, 0.5);
+		this.familiarity = Values.unit(familiarity, 0.0);
 		this.lastSeenTick = lastSeenTick;
 	}
 
@@ -44,8 +44,9 @@ public final class Acquaintance {
 		return familiarity;
 	}
 
+	/** False if the player was never seen, or if the clock has gone back past the last sighting. */
 	boolean seenWithin(long tick, long ticks) {
-		return lastSeenTick != NEVER && tick - lastSeenTick <= ticks;
+		return lastSeenTick != NEVER && tick >= lastSeenTick && tick - lastSeenTick <= ticks;
 	}
 
 	void seen(long tick, long elapsed) {
