@@ -13,16 +13,20 @@ public final class ModEntities {
 	public static final ResourceKey<EntityType<?>> COMPANION_KEY =
 			ResourceKey.create(Registries.ENTITY_TYPE, FriendbotMod.id("companion"));
 
+	/** Set by {@link #register()} during mod initialization. */
+	public static EntityType<CompanionEntity> COMPANION;
+
 	private ModEntities() {
 	}
 
 	public static void register() {
-		// noSummon() keeps /summon from creating the companion until a client renderer exists.
+		// noSummon() keeps /summon from creating a companion. Use /friendbot spawn instead.
 		EntityType<CompanionEntity> companion = EntityType.Builder.of(CompanionEntity::new, MobCategory.MISC)
 				.sized(0.6F, 1.8F)
 				.noSummon()
 				.build(COMPANION_KEY);
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, COMPANION_KEY, companion);
 		FabricDefaultAttributeRegistry.register(companion, CompanionEntity.createAttributes());
+		COMPANION = companion;
 	}
 }

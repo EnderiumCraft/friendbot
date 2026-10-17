@@ -1,5 +1,6 @@
 package com.enderiumcraft.friendbot;
 
+import com.enderiumcraft.friendbot.command.CompanionCommands;
 import com.enderiumcraft.friendbot.entity.ModEntities;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
@@ -15,6 +16,7 @@ public class FriendbotMod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		ModEntities.register();
+		CompanionCommands.register();
 		LOGGER.info("Friendbot loaded.");
 	}
 

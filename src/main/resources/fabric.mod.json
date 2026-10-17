@@ -9,6 +9,9 @@
 	"entrypoints": {
 		"main": [
 			"com.enderiumcraft.friendbot.FriendbotMod"
+		],
+		"client": [
+			"com.enderiumcraft.friendbot.client.FriendbotClient"
 		]
 	},
 	"depends": {
